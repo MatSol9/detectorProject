@@ -15,7 +15,6 @@ class CameraReader(mtl.GetParent):
 
     def get_data(self):
         ret, frame = self.cap.read()
-        cv2.imshow(frame, "sssss")
         return frame
 
 
