@@ -50,14 +50,14 @@ class DataWorker:
         self.input_object = input_object
         self.output_object = output_object
         self.operation_chain = operation_chain
-        self.stop_event = threading.Event()
+        self.stop_event = False
 
     def start(self):
         threading.Thread(target=self.run, args=()).start()
         return self
 
     def run(self):
-        while not self.stop_event.is_set():
+        while not self.stop_event:
             if self.input_object:
                 current_obj = []
                 for input_queue in self.input_object:
@@ -69,7 +69,7 @@ class DataWorker:
 
     # Use this method to stop DataWorker, waits until current OperationChain is finished
     def stop(self):
-        self.stop_event.set()
+        self.stop_event = True
 
 
 """
@@ -97,14 +97,14 @@ class DataGetter:
     def __init__(self, output_object: List[deque], get_parent: GetParent):
         self.output_object = output_object
         self.get_parent = get_parent
-        self.stop_event = threading.Event()
+        self.stop_event = False
 
     def start(self):
         threading.Thread(target=self.run, args=()).start()
         return self
 
     def run(self):
-        while not self.stop_event.is_set():
+        while not self.stop_event:
             current_obj = self.get_parent.get_data()
             if current_obj is not None:
                 for outputQueue in self.output_object:
@@ -112,7 +112,7 @@ class DataGetter:
         self.get_parent.stop()
 
     def stop(self):
-        self.stop_event.set()
+        self.stop_event = True
 
 
 """
@@ -140,14 +140,14 @@ class DataSink:
     def __init__(self, input_object: List[deque], sink_parent: SinkParent):
         self.input_object = input_object
         self.sink_parent = sink_parent
-        self.stop_event = threading.Event()
+        self.stop_event = False
 
     def start(self):
         threading.Thread(target=self.run, args=()).start()
         return self
 
     def run(self):
-        while not self.stop_event.is_set():
+        while not self.stop_event:
             if self.input_object:
                 current_obj = []
                 for input_queue in self.input_object:
@@ -158,4 +158,4 @@ class DataSink:
         self.sink_parent.stop()
 
     def stop(self):
-        self.stop_event.set()
+        self.stop_event = True
