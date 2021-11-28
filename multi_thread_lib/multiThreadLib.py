@@ -1,7 +1,6 @@
 import threading
-
-from typing import List
 from collections import deque
+from typing import List
 
 """
 A parent class for a single operation. Operation object should implement it
