@@ -2,8 +2,8 @@ from copy import deepcopy
 
 import cv2
 
-import multi_thread_lib.multiThreadLib as mtl
-from data_model.dataModel import FrameObject
+import src.multi_thread_lib.multiThreadLib as mtl
+from src.data_model.dataModel import FrameObject
 
 
 class CameraReader(mtl.GetParent):

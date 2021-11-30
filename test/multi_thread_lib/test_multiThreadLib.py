@@ -1,8 +1,7 @@
 from unittest import TestCase
 from queue import Queue
-import time
 
-import multi_thread_lib.multiThreadLib as mtl
+import src.multi_thread_lib.multiThreadLib as mtl
 
 
 class Test(TestCase):
