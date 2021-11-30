@@ -1,6 +1,6 @@
 import threading
-from collections import deque
 from typing import List
+from queue import Queue
 
 """
 A parent class for a single operation. Operation object should implement it
@@ -15,6 +15,9 @@ class OperationParent:
     # next OperationParent in OperationChain
     def run(self, input_object):
         return input_object
+
+    def get_side_input(self):
+        return self.side_input
 
 
 """
@@ -46,7 +49,7 @@ A DataWorker object, executes the OperationChain on incoming data objects
 
 
 class DataWorker:
-    def __init__(self, input_object: List[deque], output_object: List[deque], operation_chain: OperationChain):
+    def __init__(self, input_object: List[Queue], output_object: List[Queue], operation_chain: OperationChain):
         self.input_object = input_object
         self.output_object = output_object
         self.operation_chain = operation_chain
@@ -61,11 +64,11 @@ class DataWorker:
             if self.input_object:
                 current_obj = []
                 for input_queue in self.input_object:
-                    if input_queue:
-                        current_obj.append(input_queue.popleft())
+                    if not input_queue.empty():
+                        current_obj.append(input_queue.get())
                 if current_obj:
                     for output_queue in self.output_object:
-                        output_queue.append(self.operation_chain.run_operations(current_obj))
+                        output_queue.put(self.operation_chain.run_operations(current_obj))
 
     # Use this method to stop DataWorker, waits until current OperationChain is finished
     def stop(self):
@@ -94,7 +97,7 @@ DataGetter is used to catch data input from a GetParent object
 
 
 class DataGetter:
-    def __init__(self, output_object: List[deque], get_parent: GetParent):
+    def __init__(self, output_object: List[Queue], get_parent: GetParent):
         self.output_object = output_object
         self.get_parent = get_parent
         self.stop_event = False
@@ -108,7 +111,7 @@ class DataGetter:
             current_obj = self.get_parent.get_data()
             if current_obj is not None:
                 for outputQueue in self.output_object:
-                    outputQueue.append(current_obj)
+                    outputQueue.put(current_obj)
         self.get_parent.stop()
 
     def stop(self):
@@ -137,7 +140,7 @@ DataSink executes the sin_data(input_object: list) function on objects incoming 
 
 
 class DataSink:
-    def __init__(self, input_object: List[deque], sink_parent: SinkParent):
+    def __init__(self, input_object: List[Queue], sink_parent: SinkParent):
         self.input_object = input_object
         self.sink_parent = sink_parent
         self.stop_event = False
@@ -151,8 +154,8 @@ class DataSink:
             if self.input_object:
                 current_obj = []
                 for input_queue in self.input_object:
-                    if input_queue:
-                        current_obj.append(input_queue.popleft())
+                    if not input_queue.empty():
+                        current_obj.append(input_queue.get())
                 if current_obj:
                     self.sink_parent.sink_data(current_obj)
         self.sink_parent.stop()
