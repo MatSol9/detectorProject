@@ -20,17 +20,17 @@ class CameraReader(mtl.GetParent):
 
 
 class CameraDisplay(mtl.SinkParent):
-    def __init__(self, winname: str):
+    def __init__(self, window_name: str):
         super(CameraDisplay, self).__init__()
-        self.winname = winname
+        self.window_name = window_name
 
     def sink_data(self, input_object: list):
         frame: FrameObject = deepcopy(input_object[0])
-        cv2.imshow(self.winname, frame.get_frame())
+        cv2.imshow(self.window_name, frame.get_frame())
         cv2.waitKey(1)
 
     def stop(self):
-        cv2.destroyWindow(self.winname)
+        cv2.destroyWindow(self.window_name)
 
     def __del__(self):
-        cv2.destroyWindow(self.winname)
+        cv2.destroyWindow(self.window_name)
