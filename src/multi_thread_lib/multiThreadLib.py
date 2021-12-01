@@ -2,25 +2,39 @@ import threading
 from typing import List, Optional, Any
 from queue import Queue
 
-"""
-A parent class for a single operation. Operation object should implement it
-"""
-
 
 class OperationParent:
     def __init__(self, side_input: Optional[Any] = None):
+        """
+        A parent class for a single operation. Operation objects should implement it
+        @param side_input: optional additional input used when the run() method is executed
+        """
         self.side_input = side_input
 
-    # Run method, executed on the input_object by DataWorker, should return a type accepted by the run() method of the
-    # next OperationParent in OperationChain
     def run(self, input_object: Any) -> Any:
+        """
+        Run method, executed on the input_object by DataWorker, should return a type accepted by the run() method of
+        the next OperationParent in OperationChain
+        @param input_object: any object that will be processed by the
+            OperationParent
+        @return: processed input_object
+        """
         return input_object
 
-    def get_side_input(self) -> Optional[Any]:
-        return self.side_input
-
     def set_side_input(self, side_input: Any):
+        """
+        Updates additional input of the OperationParent
+        @param side_input: any object that can serve as a side input, remember to specify types
+            your OperationParent can process
+        """
         self.side_input = side_input
+
+    def get_side_input(self) -> Optional[Any]:
+        """
+        Returns current side input of the OperationParent
+        @return: current object used as a side input
+        """
+        return self.side_input
 
 
 """
