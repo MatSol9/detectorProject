@@ -12,7 +12,7 @@ def main():
                                             .add_operation(
         imageTransforms.DetectColoursThresholdsTransform(((0, 0, 30), (30, 30, 60))))
                                             .add_operation(
-        imageTransforms.ClearDetectedTransform())
+        imageTransforms.MorphologyTransform())
                                             .add_operation(imageTransforms.GetMomentsTransform())
                                             .add_operation(imageTransforms.ShowCentersOfMass())).start()
     data_display = mtl.DataSink(data_from_worker_detect_red, cameraIO.CameraDisplay("Video")).start()

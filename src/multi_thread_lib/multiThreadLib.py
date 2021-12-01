@@ -19,6 +19,9 @@ class OperationParent:
     def get_side_input(self) -> Optional[Any]:
         return self.side_input
 
+    def set_side_input(self, side_input: Any):
+        self.side_input = side_input
+
 
 """
 add_operation(operation_object: OperationParent) method is used to add consecutive data
