@@ -17,7 +17,7 @@ class GrayscaleTransform(mtl.OperationParent):
     def run(self, input_object: List[FrameObject]) -> FrameObject:
         frame = input_object[0]
         print(frame.get_frame())
-        frame_gray = cv2.cvtColor(frame.get_frame(), cv2.COLOR_RGB2GRAY)
+        frame_gray = cv2.cvtColor(frame.get_frame(), cv2.COLOR_BGR2GRAY)
         return FrameObject(frame_gray, frame.get_index())
 
 
@@ -31,8 +31,18 @@ class DetectColoursThresholdsTransform(mtl.OperationParent):
         frame_detected = cv2.inRange(frame.get_frame(), self.get_side_input()[0], self.get_side_input()[1])
         return FrameObject(frame_detected, frame.camera_index)
 
+    def set_side_input(self,
+                       side_input: Union[
+                           Tuple[Tuple[int, int, int], Tuple[int, int, int]], Tuple[Tuple[int], Tuple[int]]]):
+        """
+        Function used to update thresholds used to detect specific colours
+        @param side_input: thresholds values in a
+            Tuple. For a BGR input image they are as follows: ((minB, minG, minR), (maxB, maxG, maxR))
+        """
+        self.side_input = side_input
 
-class ClearDetectedTransform(mtl.OperationParent):
+
+class MorphologyTransform(mtl.OperationParent):
     def __init__(self):
         super().__init__()
 
