@@ -1,0 +1,25 @@
+cameras:
+  0:
+    detection_minimums:
+      - 0
+      - 0
+      - 30
+    detection_maximums:
+      - 30
+      - 30
+      - 60
+  4:
+    detection_minimums:
+      - 30
+      - 0
+      - 0
+    detection_maximums:
+      - 60
+      - 30
+      - 30
+
+morphology:
+  shape: "MORPH_ELLIPSE"
+  size:
+    - 10
+    - 10

@@ -8,6 +8,7 @@ import cv2
 import src.multi_thread_lib.multiThreadLib as mtl
 from src.data_model.dataModel import FrameObject
 from src.data_model.dataModel import FrameObjectWithDetectedCenterOfMass
+from src.data_model.dataModel import Config
 
 
 class GrayscaleTransform(mtl.OperationParent):
@@ -23,7 +24,8 @@ class GrayscaleTransform(mtl.OperationParent):
 
 class DetectColoursThresholdsTransform(mtl.OperationParent):
     def __init__(self,
-                 thresholds: Union[Tuple[Tuple[int, int, int], Tuple[int, int, int]], Tuple[Tuple[int], Tuple[int]]]):
+                 thresholds: Union[Tuple[Tuple[int, int, int], Tuple[int, int, int]], List[
+                     Tuple[int, int, int], Tuple[int, int, int]]]):
         super().__init__(thresholds)
 
     def run(self, input_object: List[FrameObject]) -> FrameObject:
@@ -32,8 +34,8 @@ class DetectColoursThresholdsTransform(mtl.OperationParent):
         return FrameObject(frame_detected, frame.camera_index)
 
     def set_side_input(self,
-                       side_input: Union[
-                           Tuple[Tuple[int, int, int], Tuple[int, int, int]], Tuple[Tuple[int], Tuple[int]]]):
+                       side_input: Union[Tuple[Tuple[int, int, int], Tuple[int, int, int]], List[
+                           Tuple[int, int, int], Tuple[int, int, int]]]):
         """
         Method used to update thresholds used to detect specific colours
         @param side_input: thresholds values in a
@@ -47,10 +49,11 @@ class MorphologyTransform(mtl.OperationParent):
         super().__init__()
 
     def run(self, input_object: FrameObject) -> FrameObject:
+        config = Config()
         frame_cleared = cv2.morphologyEx(input_object.get_frame(), cv2.MORPH_OPEN,
-                                         cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10)))
+                                         cv2.getStructuringElement(*config.get_morphology_options()))
         frame_cleared = cv2.morphologyEx(frame_cleared, cv2.MORPH_CLOSE,
-                                         cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10)))
+                                         cv2.getStructuringElement(*config.get_morphology_options()))
         return FrameObject(frame_cleared, input_object.camera_index)
 
 
@@ -83,8 +86,13 @@ class ShowCentersOfMass(mtl.OperationParent):
         c_x, c_y = input_object.get_center_of_mass()
         if input_object.was_detected:
             self.c_x, self.c_y = c_x, c_y
-        return FrameObjectWithDetectedCenterOfMass(
-            cv2.circle(cv2.cvtColor(input_object.get_frame(), cv2.COLOR_GRAY2BGR),
-                       (c_x, c_y), 5, (0, 0, 255), -1),
-            input_object.camera_index, c_x,
-            c_y, input_object.was_detected)
+            return FrameObjectWithDetectedCenterOfMass(
+                cv2.circle(cv2.cvtColor(input_object.get_frame(), cv2.COLOR_GRAY2BGR),
+                           (c_x, c_y), 5, (0, 0, 255), -1),
+                input_object.camera_index, c_x,
+                c_y, input_object.was_detected)
+        else:
+            return FrameObjectWithDetectedCenterOfMass(
+                input_object.get_frame(),
+                input_object.camera_index, c_x,
+                c_y, input_object.was_detected)
