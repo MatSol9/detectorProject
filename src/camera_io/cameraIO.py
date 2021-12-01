@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Optional
 
 import cv2
 
@@ -12,7 +13,7 @@ class CameraReader(mtl.GetParent):
         self.cap = cv2.VideoCapture(camera_number)
         self.index: int = camera_number
 
-    def get_data(self):
+    def get_data(self) -> Optional[FrameObject]:
         ret, frame = self.cap.read()
         if not ret:
             return None

@@ -1,5 +1,5 @@
 import threading
-from typing import List
+from typing import List, Optional, Any
 from queue import Queue
 
 """
@@ -8,15 +8,15 @@ A parent class for a single operation. Operation object should implement it
 
 
 class OperationParent:
-    def __init__(self, side_input=None):
+    def __init__(self, side_input: Optional[Any] = None):
         self.side_input = side_input
 
     # Run method, executed on the input_object by DataWorker, should return a type accepted by the run() method of the
     # next OperationParent in OperationChain
-    def run(self, input_object):
+    def run(self, input_object: Any) -> Any:
         return input_object
 
-    def get_side_input(self):
+    def get_side_input(self) -> Optional[Any]:
         return self.side_input
 
 
@@ -36,7 +36,7 @@ class OperationChain:
         return self
 
     # method used by DataWorker to execute operations, don't use it
-    def run_operations(self, input_object: list):
+    def run_operations(self, input_object: List[Any]) -> Any:
         output_object = input_object
         for operationObject in self.operations:
             output_object = operationObject.run(output_object)
@@ -81,10 +81,10 @@ Parent class for a data getter. Inherit it and use get_data() method for operati
 
 
 class GetParent:
-    def __init__(self, side_input=None):
+    def __init__(self, side_input: Optional[Any] = None):
         self.side_input = side_input
 
-    def get_data(self):
+    def get_data(self) -> Any:
         return None
 
     def stop(self):
@@ -124,7 +124,7 @@ SinkParent object, used as an ending to a pipeline
 
 
 class SinkParent:
-    def __init__(self, side_input=None):
+    def __init__(self, side_input: Optional[Any] = None):
         self.side_input = side_input
 
     def sink_data(self, input_object: list):

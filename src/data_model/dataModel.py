@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 from datetime import datetime
 
@@ -22,5 +24,5 @@ class FrameObjectWithDetectedCenterOfMass(FrameObject):
         self.c_y = c_y
         self.was_detected = was_detected
 
-    def get_center_of_mass(self):
+    def get_center_of_mass(self) -> Tuple[int, int]:
         return self.c_x, self.c_y
