@@ -1,10 +1,13 @@
 from copy import deepcopy
-from typing import Optional
+from queue import Queue
+from typing import Optional, List
 
 import cv2
 
 import src.multi_thread_lib.multiThreadLib as mtl
 from src.data_model.dataModel import FrameObject
+from src.data_model.dataModel import Config
+import src.image_transforms.imageTransforms as imageTransforms
 
 
 class CameraReader(mtl.GetParent):
@@ -35,3 +38,30 @@ class CameraDisplay(mtl.SinkParent):
 
     def __del__(self):
         cv2.destroyWindow(self.window_name)
+
+
+class Camera:
+    def __init__(self, index: int, fps: float, data_output: List[Queue]):
+        self.index = index
+        self.fps = fps
+        data_from_input = [Queue()]
+        self.config = Config()
+        self.detection_minimums = self.config.get_detection_minimums(self.index)
+        self.detection_maximums = self.config.get_detection_maximums(self.index)
+        self.data_getter = mtl.PeriodicDataGetter(data_from_input, CameraReader(self.index), self.fps)
+        self.data_worker_detect = mtl.DataWorker(data_from_input, data_output, mtl.OperationChain()
+                                                 .add_operation(
+            imageTransforms.DetectColoursThresholdsTransform(
+                (self.detection_minimums, self.detection_maximums)))
+                                                 .add_operation(
+            imageTransforms.MorphologyTransform())
+                                                 .add_operation(imageTransforms.GetMomentsTransform())
+                                                 .add_operation(imageTransforms.ShowCentersOfMass()))
+
+    def start(self):
+        self.data_getter.start()
+        self.data_worker_detect.start()
+
+    def stop(self):
+        self.data_getter.stop()
+        self.data_worker_detect.stop()

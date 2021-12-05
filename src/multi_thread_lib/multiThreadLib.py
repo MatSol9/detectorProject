@@ -159,6 +159,7 @@ class PeriodicDataGetter:
     def stop(self):
         self.stop_event = True
 
+
 """
 SinkParent object, used as an ending to a pipeline
 """
