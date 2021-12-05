@@ -11,7 +11,8 @@ class Test(TestCase):
         input_queue.put("2")
         input_queue.put("3")
         output_queue = Queue()
-        data_worker = mtl.DataWorker([input_queue], [output_queue], mtl.OperationChain()).start()
+        data_worker = mtl.DataWorker([input_queue], [output_queue], mtl.OperationChain())
+        data_worker.start()
         # time.sleep(0.001)
         data_worker.stop()
         output_list = []
@@ -32,7 +33,8 @@ class Test(TestCase):
                 else:
                     return None
         output_queue = Queue()
-        data_getter = mtl.DataGetter([output_queue], TestGetObject()).start()
+        data_getter = mtl.DataGetter([output_queue], TestGetObject())
+        data_getter.start()
         # time.sleep(0.001)
         data_getter.stop()
         output_list = []
@@ -45,7 +47,8 @@ class Test(TestCase):
         input_queue.put("1")
         input_queue.put("2")
         input_queue.put("3")
-        data_sink = mtl.DataSink([input_queue], mtl.SinkParent()).start()
+        data_sink = mtl.DataSink([input_queue], mtl.SinkParent())
+        data_sink.start()
         # time.sleep(0.001)
         data_sink.stop()
         self.assertTrue(input_queue.empty())

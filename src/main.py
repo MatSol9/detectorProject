@@ -11,7 +11,7 @@ def main():
     data_from_input = [Queue()]
     data_from_worker_detect_red = [Queue()]
     camera_index: int = config.get_camera_indexes()[0]
-    data_getter = mtl.DataGetter(data_from_input, cameraIO.CameraReader(camera_index)).start()
+    data_getter = mtl.PeriodicDataGetter(data_from_input, cameraIO.CameraReader(camera_index), 30)
     data_worker_detect_red = mtl.DataWorker(data_from_input, data_from_worker_detect_red, mtl.OperationChain()
                                             .add_operation(
         imageTransforms.DetectColoursThresholdsTransform(
@@ -19,8 +19,11 @@ def main():
                                             .add_operation(
         imageTransforms.MorphologyTransform())
                                             .add_operation(imageTransforms.GetMomentsTransform())
-                                            .add_operation(imageTransforms.ShowCentersOfMass())).start()
-    data_display = mtl.DataSink(data_from_worker_detect_red, cameraIO.CameraDisplay("Video")).start()
+                                            .add_operation(imageTransforms.ShowCentersOfMass()))
+    data_display = mtl.DataSink(data_from_worker_detect_red, cameraIO.CameraDisplay("Video"))
+    data_getter.start()
+    data_worker_detect_red.start()
+    data_display.start()
 
 
 if __name__ == "__main__":

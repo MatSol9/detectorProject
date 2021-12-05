@@ -1,4 +1,5 @@
 import threading
+import time
 from typing import List, Optional, Any
 from queue import Queue
 
@@ -74,7 +75,6 @@ class DataWorker:
 
     def start(self):
         threading.Thread(target=self.run, args=()).start()
-        return self
 
     def run(self):
         while not self.stop_event:
@@ -121,7 +121,6 @@ class DataGetter:
 
     def start(self):
         threading.Thread(target=self.run, args=()).start()
-        return self
 
     def run(self):
         while not self.stop_event:
@@ -134,6 +133,31 @@ class DataGetter:
     def stop(self):
         self.stop_event = True
 
+
+class PeriodicDataGetter:
+    def __init__(self, output_object: List[Queue], get_parent: GetParent, frequency: float):
+        self.output_object = output_object
+        self.get_parent = get_parent
+        self.stop_event = False
+        self.period = 1/frequency
+
+    def get_data(self):
+        current_obj = self.get_parent.get_data()
+        if current_obj is not None:
+            for outputQueue in self.output_object:
+                outputQueue.put(current_obj)
+
+    def main_loop(self):
+        while not self.stop_event:
+            threading.Thread(target=self.get_data, args=()).start()
+            time.sleep(self.period)
+        self.stop_event = True
+
+    def start(self):
+        threading.Thread(target=self.main_loop, args=()).start()
+
+    def stop(self):
+        self.stop_event = True
 
 """
 SinkParent object, used as an ending to a pipeline
@@ -164,7 +188,6 @@ class DataSink:
 
     def start(self):
         threading.Thread(target=self.run, args=()).start()
-        return self
 
     def run(self):
         while not self.stop_event:
