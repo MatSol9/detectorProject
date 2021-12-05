@@ -65,3 +65,8 @@ class Camera:
     def stop(self):
         self.data_getter.stop()
         self.data_worker_detect.stop()
+
+    def __str__(self) -> str:
+        return " FPS: {}".format(self.fps)
+
+

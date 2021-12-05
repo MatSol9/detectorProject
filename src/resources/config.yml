@@ -8,15 +8,6 @@ cameras:
       - 30
       - 30
       - 60
-  4:
-    detection_minimums:
-      - 30
-      - 0
-      - 0
-    detection_maximums:
-      - 60
-      - 30
-      - 30
 
 morphology:
   shape: "MORPH_ELLIPSE"
