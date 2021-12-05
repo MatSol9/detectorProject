@@ -74,6 +74,7 @@ class DataWorker:
         self.stop_event = False
 
     def start(self):
+        self.stop_event = False
         threading.Thread(target=self.run, args=()).start()
 
     def run(self):
@@ -120,6 +121,7 @@ class DataGetter:
         self.stop_event = False
 
     def start(self):
+        self.stop_event = False
         threading.Thread(target=self.run, args=()).start()
 
     def run(self):
@@ -154,6 +156,7 @@ class PeriodicDataGetter:
         self.stop_event = True
 
     def start(self):
+        self.stop_event = False
         threading.Thread(target=self.main_loop, args=()).start()
 
     def stop(self):
@@ -188,6 +191,7 @@ class DataSink:
         self.stop_event = False
 
     def start(self):
+        self.stop_event = False
         threading.Thread(target=self.run, args=()).start()
 
     def run(self):

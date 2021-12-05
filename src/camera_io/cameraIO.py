@@ -22,9 +22,6 @@ class CameraReader(mtl.GetParent):
             return None
         return FrameObject(deepcopy(frame), self.index)
 
-    def stop(self):
-        self.cap.release()
-
 
 class CameraDisplay(mtl.SinkParent):
     def __init__(self, window_name: str):
