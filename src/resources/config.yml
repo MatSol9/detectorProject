@@ -6,12 +6,6 @@ objects:
   1:
     tag_id: 1
 
-morphology:
-  shape: "MORPH_ELLIPSE"
-  size:
-    - 10
-    - 10
-
 max_search_index: 10
 
 field_of_detection:
