@@ -60,6 +60,19 @@ def create_camera_rest():
 @app.route('/cameras/free', methods=['GET'])
 def get_available_indexes_rest():
     config = Config()
+    result = []
+    for index in range(config.get_max_search_index()):
+        if index not in cameras.indexes:
+            cap = cv2.VideoCapture(index)
+            if cap.isOpened():
+                result.append(index)
+                cap.release()
+    return "available indexes: {}".format(result), 200
+
+
+@app.route('/cameras/resolutions', methods=['GET'])
+def get_available_resolutions_rest():
+    config = Config()
     result = {}
     for index in range(config.get_max_search_index()):
         if index not in cameras.indexes:
@@ -67,7 +80,7 @@ def get_available_indexes_rest():
             if cap.isOpened():
                 result[index] = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
                 cap.release()
-    return "available indexes: {}".format(result), 200
+    return "available indexes and resolutions: {}".format(result), 200
 
 
 if __name__ == "__main__":

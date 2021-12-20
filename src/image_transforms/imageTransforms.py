@@ -23,8 +23,6 @@ class DetectObjectsTransform(mtl.OperationParent):
         frame_gr = cv2.cvtColor(frame.get_frame(), cv2.COLOR_BGR2GRAY)
         centers: Dict[int, Tuple[int, int]] = {}
         rots: Dict = {}
-        # config = self.settings.config
-        # objects: List[int] = self.settings.indexes
         detector = apriltag.Detector(self.settings.options)
         results = detector.detect(frame_gr)
         for detected in results:
@@ -37,20 +35,6 @@ class DetectObjectsTransform(mtl.OperationParent):
                 if ptA[0] - ptD[0] < 0:
                     val += np.pi
                 rots[self.settings.tags_index.get(detected.tag_id)] = val
-        #
-        # for index in objects:
-        #     frame_detected = cv2.inRange(frame.get_frame(), self.settings.get_detection_minimums(index),
-        #                                  self.settings.get_detection_maximums(index))
-        #     frame_cleared = cv2.morphologyEx(frame_detected, cv2.MORPH_OPEN,
-        #                                      cv2.getStructuringElement(*config.get_morphology_options()))
-        #     frame_cleared = cv2.morphologyEx(frame_cleared, cv2.MORPH_CLOSE,
-        #                                      cv2.getStructuringElement(*config.get_morphology_options()))
-        #     m = cv2.moments(frame_cleared)
-        #     if m["m00"] != 0:
-        #         c_x = int(m["m10"] / m["m00"])
-        #         c_y = int(m["m01"] / m["m00"])
-        #         centers[index] = c_x, c_y
-        #         rots[index] = 0
         return FrameObjectWithDetectedCenterOfMass(frame.get_frame(), frame.camera_index, centers, rots)
 
 

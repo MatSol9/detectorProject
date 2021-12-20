@@ -1,6 +1,6 @@
 from copy import deepcopy
 from queue import Queue
-from typing import Optional, List, Dict, Tuple, Any, Set
+from typing import Optional, List, Dict, Tuple
 
 import apriltag
 import cv2
@@ -41,7 +41,7 @@ class CameraDisplay(mtl.SinkParent):
         self.cameras = set()
 
     def sink_data(self, input_object: List[FrameObjectWithDetectedCenterOfMass]):
-        frame_window = np.zeros(self.window_size)
+        frame_window = np.zeros((*self.window_size, 3))
         for detected_frame in input_object:
             self.cameras.add(detected_frame.camera_index)
             self.detected_objects_centers[detected_frame.camera_index] = detected_frame.centers
@@ -57,15 +57,21 @@ class CameraDisplay(mtl.SinkParent):
             for camera_index in self.cameras:
                 if object_index in self.detected_objects_centers.get(camera_index):
                     i += 1
-                    x += self.detected_objects_centers.get(camera_index).get(object_index)[0]
-                    y += self.detected_objects_centers.get(camera_index).get(object_index)[1]
-                    rot += self.detected_objects_rots.get(camera_index).get(object_index)
+                    x_p = self.detected_objects_centers.get(camera_index).get(object_index)[0]
+                    x += x_p
+                    y_p = self.detected_objects_centers.get(camera_index).get(object_index)[1]
+                    y += y_p
+                    rot_p = self.detected_objects_rots.get(camera_index).get(object_index)
+                    rot += rot_p
+                    cv2.circle(frame_window, (x_p, y_p), 5, (255, 0, 0), -1)
+                    cv2.putText(frame_window, "{}: rot: {}".format(object_index, str(rot_p)), (x_p, y_p),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
             if i != 0:
                 x = x // i
                 y = y // i
                 rot = rot / i
-                cv2.putText(frame_window, str(rot), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1, 2)
-                cv2.circle(frame_window, (x, y), 5, 1, -1)
+                cv2.putText(frame_window, "{}: rot: {}".format(object_index, str(rot)), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                cv2.circle(frame_window, (x, y), 5, (0, 0, 255), -1)
         cv2.imshow(self.window_name, frame_window)
         cv2.waitKey(1)
 
@@ -80,23 +86,13 @@ class Settings:
     def __init__(self):
         self.config = Config()
         temp_objects = self.config.get_objects()
-        self.objects: Dict[int, tuple] = {}
         self.indexes: List[int] = list(temp_objects.keys())
-        for index in self.indexes:
-            self.objects[index] = tuple(temp_objects.get(index).get("detection_minimums")), \
-                                  tuple(temp_objects.get(index).get("detection_maximums"))
         self.options = apriltag.DetectorOptions(families=self.config.get_tag_family())
         self.tags_index = {}
         self.tags = []
         for index in self.indexes:
             self.tags_index[temp_objects.get(index).get("tag_id")] = index
             self.tags.append(temp_objects.get(index).get("tag_id"))
-
-    def get_detection_minimums(self, index: int):
-        return self.objects.get(index)[0]
-
-    def get_detection_maximums(self, index: int):
-        return self.objects.get(index)[1]
 
 
 class Camera:
