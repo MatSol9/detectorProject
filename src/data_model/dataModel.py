@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Tuple, List, Dict
 
-import cv2
 import numpy as np
 import yaml
 
@@ -22,15 +21,6 @@ class Config:
     def __init__(self):
         with open("src/resources/config.yml", "r") as ymlfile:
             self.cfg: dict = yaml.load(ymlfile, Loader=yaml.FullLoader)
-            morphology_options: dict = {
-                "MORPH_ELLIPSE": cv2.MORPH_ELLIPSE,
-                "MORPH_RECT": cv2.MORPH_RECT
-            }
-            self.morphology_options = (morphology_options.get(self.cfg.get("morphology").get("shape")),
-                                       tuple(self.cfg.get("morphology").get("size")))
-
-    def get_morphology_options(self) -> Tuple[int, Tuple[int, int]]:
-        return self.morphology_options
 
     def get_camera_indexes(self) -> List[int]:
         return list(self.cfg.get("cameras").keys())
