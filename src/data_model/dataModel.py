@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 import cv2
 import numpy as np
@@ -29,17 +29,23 @@ class Config:
             self.morphology_options = (morphology_options.get(self.cfg.get("morphology").get("shape")),
                                        tuple(self.cfg.get("morphology").get("size")))
 
-    def get_detection_minimums(self, camera_index: int) -> Tuple[int, int, int]:
-        return tuple(self.cfg.get("cameras").get(camera_index).get("detection_minimums"))
-
-    def get_detection_maximums(self, camera_index: int) -> Tuple[int, int, int]:
-        return tuple(self.cfg.get("cameras").get(camera_index).get("detection_maximums"))
-
     def get_morphology_options(self) -> Tuple[int, Tuple[int, int]]:
         return self.morphology_options
 
     def get_camera_indexes(self) -> List[int]:
         return list(self.cfg.get("cameras").keys())
+
+    def get_max_search_index(self) -> int:
+        return int(self.cfg.get("max_search_index"))
+
+    def get_objects(self) -> Dict[int, Dict]:
+        return self.cfg.get("objects")
+
+    def get_window_size(self) -> Tuple[int, int]:
+        return self.cfg.get("field_of_detection").get("x"), self.cfg.get("field_of_detection").get("y")
+
+    def get_tag_family(self) -> str:
+        return self.cfg.get("tag_family")
 
 
 class FrameObject:
@@ -56,11 +62,14 @@ class FrameObject:
 
 
 class FrameObjectWithDetectedCenterOfMass(FrameObject):
-    def __init__(self, frame: np.ndarray, camera_index: int, c_x: int, c_y: int, was_detected: bool):
+    def __init__(self, frame: np.ndarray, camera_index: int, centers: Dict[int, Tuple[int, int]], rots: Dict):
         super(FrameObjectWithDetectedCenterOfMass, self).__init__(frame, camera_index)
-        self.c_x = c_x
-        self.c_y = c_y
-        self.was_detected = was_detected
+        self.centers = centers
+        self.rots = rots
+        self.indexes = centers.keys()
 
-    def get_center_of_mass(self) -> Tuple[int, int]:
-        return self.c_x, self.c_y
+    def get_center_of_mass(self, index) -> Tuple[int, int]:
+        return self.centers.get(index)
+
+    def get_rotation(self, index):
+        return self.rots.get(index)

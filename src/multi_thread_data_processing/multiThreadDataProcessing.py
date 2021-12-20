@@ -2,6 +2,7 @@ import threading
 import time
 from typing import List, Optional, Any
 from queue import Queue
+from datetime import datetime
 
 
 class OperationParent:
@@ -85,8 +86,10 @@ class DataWorker:
                     if not input_queue.empty():
                         current_obj.append(input_queue.get())
                 if current_obj:
+                    # timestamp = datetime.now()
                     for output_queue in self.output_object:
                         output_queue.put(self.operation_chain.run_operations(current_obj))
+                    # print(datetime.now() - timestamp)
 
     # Use this method to stop DataWorker, waits until current OperationChain is finished
     def stop(self):
@@ -203,7 +206,38 @@ class DataSink:
                         current_obj.append(input_queue.get())
                 if current_obj:
                     self.sink_parent.sink_data(current_obj)
+
         self.sink_parent.stop()
+
+    def stop(self):
+        self.stop_event = True
+
+
+class PeriodicDataSink:
+    def __init__(self, input_object: List[Queue], sink_parent: SinkParent, frequency: float):
+        self.input_object = input_object
+        self.sink_parent = sink_parent
+        self.stop_event = False
+        self.period = 1/frequency
+
+    def sink_data(self):
+        if self.input_object:
+            current_obj = []
+            for input_queue in self.input_object:
+                if not input_queue.empty():
+                    current_obj.append(input_queue.get())
+            if current_obj:
+                self.sink_parent.sink_data(current_obj)
+
+    def main_loop(self):
+        while not self.stop_event:
+            threading.Thread(target=self.sink_data, args=()).start()
+            time.sleep(self.period)
+        self.stop_event = True
+
+    def start(self):
+        self.stop_event = False
+        threading.Thread(target=self.main_loop, args=()).start()
 
     def stop(self):
         self.stop_event = True

@@ -1,5 +1,8 @@
-cameras:
+tag_family: "tag36h11"
+
+objects:
   0:
+    tag_id: 0
     detection_minimums:
       - 0
       - 0
@@ -8,9 +11,25 @@ cameras:
       - 30
       - 30
       - 60
+  1:
+    tag_id: 1
+    detection_minimums:
+      - 30
+      - 0
+      - 0
+    detection_maximums:
+      - 60
+      - 30
+      - 30
 
 morphology:
   shape: "MORPH_ELLIPSE"
   size:
     - 10
     - 10
+
+max_search_index: 10
+
+field_of_detection:
+  x: 800
+  y: 800

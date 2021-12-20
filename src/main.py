@@ -1,25 +1,17 @@
-from queue import Queue
 from flask import Flask, jsonify, request
 
-import camera_io.cameraIO as cameraIO
-import multi_thread_lib.multiThreadLib as mtl
-from data_model.dataModel import Config
+import cv2
 
+import camera_io.cameraIO as cameraIO
+import multi_thread_data_processing.multiThreadDataProcessing as mtl
+from data_model.dataModel import Config
 
 app = Flask(__name__)
 cameras = cameraIO.AllCameras()
 
 
 def main():
-    config = Config()
-    data_from_cameras = []
-    for index in config.get_camera_indexes():
-        detection_minimums = config.get_detection_minimums(index)
-        detection_maximums = config.get_detection_maximums(index)
-        data_from_cameras.append(Queue())
-        cameras.add_camera(index, 30, data_from_cameras, detection_minimums, detection_maximums)
-    data_display = mtl.DataSink(data_from_cameras, cameraIO.CameraDisplay("Video"))
-    # cameras.start_all_cameras()
+    data_display = mtl.DataSink(cameras.data_output, cameraIO.CameraDisplay("Video", cameras.camera_data))
     data_display.start()
     app.run()
 
@@ -29,13 +21,13 @@ def get_cameras():
     return jsonify(result)
 
 
-@app.route('/cameras', methods=['GET'])
-def get_cameras_REST():
+@app.route('/cameras/get', methods=['GET'])
+def get_cameras_rest():
     return get_cameras()
 
 
-@app.route('/cameras', methods=['PUT'])
-def stop_start_cameras_REST():
+@app.route('/cameras/activate', methods=['PUT'])
+def stop_start_cameras_rest():
     index: str = request.args.get("index")
     active: str = request.args.get("active")
     if active.__eq__("true"):
@@ -46,6 +38,36 @@ def stop_start_cameras_REST():
         return "camera {} turned off".format(index), 200
     else:
         return 'bad request!', 400
+
+
+@app.route('/cameras/create', methods=['POST'])
+def create_camera_rest():
+    try:
+        index: int = int(request.args.get("index"))
+        fps: float = float(request.args.get("fps"))
+        x: int = int(request.args.get("x"))
+        y: int = int(request.args.get("y"))
+    except:
+        return "wrong arguments", 400
+    print("Creating camera with index {}, fps {}, and starting point {},{}".format(index, fps, x, y))
+    try:
+        cameras.add_camera(index, fps, x, y)
+    except:
+        return "index {} does not exist".format(index), 400
+    return "camera {} created".format(index), 200
+
+
+@app.route('/cameras/free', methods=['GET'])
+def get_available_indexes_rest():
+    config = Config()
+    result = {}
+    for index in range(config.get_max_search_index()):
+        if index not in cameras.indexes:
+            cap = cv2.VideoCapture(index)
+            if cap.isOpened():
+                result[index] = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                cap.release()
+    return "available indexes: {}".format(result), 200
 
 
 if __name__ == "__main__":
