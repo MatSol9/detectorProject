@@ -51,14 +51,14 @@ class FrameObject:
         return self.camera_index
 
 
-class FrameObjectWithDetectedCenterOfMass(FrameObject):
+class FrameObjectWithDetectedObjects(FrameObject):
     def __init__(self, frame: np.ndarray, camera_index: int, centers: Dict[int, Tuple[int, int]], rots: Dict):
-        super(FrameObjectWithDetectedCenterOfMass, self).__init__(frame, camera_index)
+        super(FrameObjectWithDetectedObjects, self).__init__(frame, camera_index)
         self.centers = centers
         self.rots = rots
         self.indexes = centers.keys()
 
-    def get_center_of_mass(self, index) -> Tuple[int, int]:
+    def get_center(self, index) -> Tuple[int, int]:
         return self.centers.get(index)
 
     def get_rotation(self, index):

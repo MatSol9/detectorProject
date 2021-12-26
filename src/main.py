@@ -47,11 +47,12 @@ def create_camera_rest():
         fps: float = float(request.args.get("fps"))
         x: int = int(request.args.get("x"))
         y: int = int(request.args.get("y"))
+        angle: float = float(request.args.get("angle"))
     except:
         return "wrong arguments", 400
     print("Creating camera with index {}, fps {}, and starting point {},{}".format(index, fps, x, y))
     try:
-        cameras.add_camera(index, fps, x, y)
+        cameras.add_camera(index, fps, x, y, angle)
     except:
         return "index {} does not exist".format(index), 400
     return "camera {} created".format(index), 200

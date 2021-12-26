@@ -10,7 +10,7 @@ import numpy as np
 import src.multi_thread_data_processing.multiThreadDataProcessing as mtl
 from src.camera_io.cameraIO import Settings
 from src.data_model.dataModel import FrameObject
-from src.data_model.dataModel import FrameObjectWithDetectedCenterOfMass
+from src.data_model.dataModel import FrameObjectWithDetectedObjects
 
 
 class DetectObjectsTransform(mtl.OperationParent):
@@ -35,17 +35,17 @@ class DetectObjectsTransform(mtl.OperationParent):
                 if ptA[0] - ptD[0] < 0:
                     val += np.pi
                 rots[self.settings.tags_index.get(detected.tag_id)] = val
-        return FrameObjectWithDetectedCenterOfMass(frame.get_frame(), frame.camera_index, centers, rots)
+        return FrameObjectWithDetectedObjects(frame.get_frame(), frame.camera_index, centers, rots)
 
 
 class ShowCentersOfMass(mtl.OperationParent):
     def __init__(self):
         super().__init__()
 
-    def run(self, input_object: FrameObjectWithDetectedCenterOfMass) -> FrameObjectWithDetectedCenterOfMass:
+    def run(self, input_object: FrameObjectWithDetectedObjects) -> FrameObjectWithDetectedObjects:
         frame = input_object.get_frame()
         for c_x, c_y in input_object.centers.values():
             frame = cv2.circle(input_object.get_frame(), (c_x, c_y), 5, (0, 0, 255), -1)
-        return FrameObjectWithDetectedCenterOfMass(frame, input_object.camera_index, input_object.centers,
-                                                   input_object.rots)
+        return FrameObjectWithDetectedObjects(frame, input_object.camera_index, input_object.centers,
+                                              input_object.rots)
 

@@ -140,7 +140,10 @@ class DataGetter:
 
 
 class PeriodicDataGetter:
-    def __init__(self, output_object: List[Queue], get_parent: GetParent, frequency: float):
+    def __init__(self,
+                 output_object: List[Queue],
+                 get_parent: GetParent,
+                 frequency: float):
         self.output_object = output_object
         self.get_parent = get_parent
         self.stop_event = False

@@ -10,7 +10,7 @@ import src.image_transforms.imageTransforms as imageTransforms
 import src.multi_thread_data_processing.multiThreadDataProcessing as mtl
 from src.data_model.dataModel import Config
 from src.data_model.dataModel import FrameObject
-from src.data_model.dataModel import FrameObjectWithDetectedCenterOfMass
+from src.data_model.dataModel import FrameObjectWithDetectedObjects
 
 
 class CameraReader(mtl.GetParent):
@@ -39,16 +39,28 @@ class CameraDisplay(mtl.SinkParent):
         self.indexes = config.get_objects().keys()
         self.camera_data = camera_data
         self.cameras = set()
+        self.first_frames = {}
 
-    def sink_data(self, input_object: List[FrameObjectWithDetectedCenterOfMass]):
+    def sink_data(self, input_object: List[FrameObjectWithDetectedObjects]):
         frame_window = np.zeros((*self.window_size, 3))
         for detected_frame in input_object:
-            self.cameras.add(detected_frame.camera_index)
+            if detected_frame.camera_index not in self.cameras:
+                self.cameras.add(detected_frame.camera_index)
+            self.first_frames[detected_frame.camera_index] = detected_frame.get_frame()
             self.detected_objects_centers[detected_frame.camera_index] = detected_frame.centers
             self.detected_objects_rots[detected_frame.camera_index] = detected_frame.rots
             for object_index in self.indexes:
                 if object_index in self.detected_objects_centers[detected_frame.camera_index]:
-                    self.detected_objects_centers.get(detected_frame.camera_index)[object_index] = self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[0] + self.camera_data.get(detected_frame.camera_index)[0], self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[1] + self.camera_data.get(detected_frame.camera_index)[1]
+                    x_from_camera = self.camera_data.get(detected_frame.camera_index)[0]
+                    y_from_camera = self.camera_data.get(detected_frame.camera_index)[1]
+                    cosine = np.cos(self.camera_data.get(detected_frame.camera_index)[2])
+                    sine = np.sin(self.camera_data.get(detected_frame.camera_index)[2])
+                    self.detected_objects_centers.get(detected_frame.camera_index)[object_index] = \
+                        int(self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[0] + \
+                        x_from_camera*cosine - y_from_camera*sine), \
+                        int(self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[1] + \
+                        x_from_camera*sine + y_from_camera*cosine)
+        frames_to_display = deepcopy(self.first_frames)
         for object_index in self.indexes:
             i = 0
             x = 0
@@ -63,15 +75,41 @@ class CameraDisplay(mtl.SinkParent):
                     y += y_p
                     rot_p = self.detected_objects_rots.get(camera_index).get(object_index)
                     rot += rot_p
-                    cv2.circle(frame_window, (x_p, y_p), 5, (255, 0, 0), -1)
-                    cv2.putText(frame_window, "{}: rot: {}".format(object_index, str(rot_p)), (x_p, y_p),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                    x_from_camera = self.camera_data.get(camera_index)[0]
+                    y_from_camera = self.camera_data.get(camera_index)[1]
+                    cosine = np.cos(self.camera_data.get(camera_index)[2])
+                    sine = np.sin(self.camera_data.get(camera_index)[2])
+                    frames_to_display[camera_index] = cv2.circle(frames_to_display[camera_index], (
+                        int(x_p - x_from_camera*cosine + y_from_camera*sine), int(y_p - x_from_camera*sine - y_from_camera*cosine)), 5,
+                                                                 (255, 0, 0), -1)
+                    frames_to_display[camera_index] = cv2.putText(frames_to_display[camera_index],
+                                                                  "object: {}: rot: {}".format(object_index,
+                                                                                               str(rot_p)), (
+                                                                      int(x_p - x_from_camera*cosine + y_from_camera*sine),
+                                                                      int(y_p - x_from_camera*sine - y_from_camera*cosine + 15)),
+                                                                  cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
             if i != 0:
                 x = x // i
                 y = y // i
                 rot = rot / i
-                cv2.putText(frame_window, "{}: rot: {}".format(object_index, str(rot)), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                for camera_index in self.cameras:
+                    x_from_camera = self.camera_data.get(camera_index)[0]
+                    y_from_camera = self.camera_data.get(camera_index)[1]
+                    cosine = np.cos(self.camera_data.get(camera_index)[2])
+                    sine = np.sin(self.camera_data.get(camera_index)[2])
+                    frames_to_display[camera_index] = cv2.putText(frames_to_display[camera_index],
+                                                                  "object: {}: rot: {}".format(object_index, str(rot)),
+                                                                  (int(x - x_from_camera*cosine + y_from_camera*sine),
+                                                                   int(y - x_from_camera*sine - y_from_camera*cosine)),
+                                                                  cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    frames_to_display[camera_index] = cv2.circle(frames_to_display[camera_index], (
+                        int(x - x_from_camera*cosine + y_from_camera*sine), int(y - x_from_camera*sine - y_from_camera*cosine)), 5,
+                                                                 (0, 0, 255), -1)
+                cv2.putText(frame_window, "object: {}: rot: {}".format(object_index, str(rot)), (x, y),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
                 cv2.circle(frame_window, (x, y), 5, (0, 0, 255), -1)
+        for camera_index in self.cameras:
+            cv2.imshow("Camera: {}".format(camera_index), frames_to_display[camera_index])
         cv2.imshow(self.window_name, frame_window)
         cv2.waitKey(1)
 
@@ -96,7 +134,12 @@ class Settings:
 
 
 class Camera:
-    def __init__(self, index: int, fps: float, x: int, y: int, data_output: List[Queue]):
+    def __init__(self,
+                 index: int,
+                 fps: float,
+                 x: int,
+                 y: int,
+                 data_output: List[Queue]):
         self.index = index
         self.fps = fps
         self.x = x
@@ -104,11 +147,16 @@ class Camera:
         self.status = "INACTIVE"
         data_from_input = [Queue()]
         self.settings: Settings = Settings()
-        self.data_getter = mtl.PeriodicDataGetter(data_from_input, CameraReader(self.index), self.fps)
-        self.data_worker_detect = mtl.DataWorker(data_from_input, data_output, mtl.OperationChain()
-                                                 .add_operation(imageTransforms.DetectObjectsTransform(self.settings))
-                                                 # .add_operation(imageTransforms.ShowCentersOfMass())
-                                                 )
+        self.data_getter = mtl.PeriodicDataGetter(data_from_input,
+                                                  CameraReader(self.index),
+                                                  self.fps)
+        self.data_worker_detect = mtl.DataWorker(data_from_input,
+                                                 data_output,
+                                                 mtl.OperationChain()
+                                                 .add_operation(
+                                                     imageTransforms
+                                                         .DetectObjectsTransform(
+                                                         self.settings)))
 
     def start(self):
         self.data_getter.start()
@@ -120,7 +168,7 @@ class Camera:
         self.data_worker_detect.stop()
         self.status = "INACTIVE"
 
-    def set_settings(self, settings: Dict[int, Dict[str, Tuple]]):
+    def set_settings(self, settings: Settings):
         self.settings = settings
 
     def to_dict(self):
@@ -141,12 +189,12 @@ class AllCameras:
         self.data_output: List[Queue] = []
         self.camera_data = {}
 
-    def add_camera(self, index: int, fps: float, x: int, y: int):
+    def add_camera(self, index: int, fps: float, x: int, y: int, angle: float):
         output_object: Queue = Queue()
         self.data_output.append(output_object)
         self.all_cameras[index] = Camera(index, fps, x, y, [output_object])
         self.indexes.append(index)
-        self.camera_data[index] = x, y
+        self.camera_data[index] = x, y, angle
 
     def start_camera(self, index: int):
         self.all_cameras[index].start()
