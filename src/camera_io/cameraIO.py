@@ -73,10 +73,11 @@ class CameraDisplay(mtl.SinkParent):
                     x += x_p
                     y_p = self.detected_objects_centers.get(camera_index).get(object_index)[1]
                     y += y_p
-                    rot_p = self.detected_objects_rots.get(camera_index).get(object_index)
+                    rot_p = self.detected_objects_rots.get(camera_index).get(object_index) \
+                            + self.camera_data.get(camera_index)[2]
                     rot += rot_p
-                    x_1 = self.camera_data.get(camera_index)[0] - x_p
-                    y_1 = self.camera_data.get(camera_index)[1] - y_p
+                    x_1 = x_p - self.camera_data.get(camera_index)[0]
+                    y_1 = y_p - self.camera_data.get(camera_index)[1]
                     cosine = np.cos(self.camera_data.get(camera_index)[2])
                     sine = np.sin(self.camera_data.get(camera_index)[2])
                     frames_to_display[camera_index] = cv2.circle(frames_to_display[camera_index], (
@@ -85,7 +86,7 @@ class CameraDisplay(mtl.SinkParent):
                                                                  (255, 0, 0), -1)
                     frames_to_display[camera_index] = cv2.putText(frames_to_display[camera_index],
                                                                   "object: {}: rot: {}".format(object_index,
-                                                                                               str(rot_p)), (
+                                                                                               str(rot_p - self.camera_data.get(camera_index)[2])), (
                                                                       int(x_1*cosine + y_1*sine),
                                                                       int(y_1*cosine - x_1*sine + 15)),
                                                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
@@ -96,8 +97,8 @@ class CameraDisplay(mtl.SinkParent):
                 for camera_index in self.cameras:
                     cosine = np.cos(self.camera_data.get(camera_index)[2])
                     sine = np.sin(self.camera_data.get(camera_index)[2])
-                    x_1 = self.camera_data.get(camera_index)[0] - x
-                    y_1 = self.camera_data.get(camera_index)[1] - y
+                    x_1 = x - self.camera_data.get(camera_index)[0]
+                    y_1 = y - self.camera_data.get(camera_index)[1]
                     frames_to_display[camera_index] = cv2.putText(frames_to_display[camera_index],
                                                                   "object: {}: rot: {}".format(object_index, str(rot)),
                                                                   (
