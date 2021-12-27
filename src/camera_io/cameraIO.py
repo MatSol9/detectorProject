@@ -94,8 +94,6 @@ class CameraDisplay(mtl.SinkParent):
                 y = y // i
                 rot = rot / i
                 for camera_index in self.cameras:
-                    x_from_camera = self.camera_data.get(camera_index)[0]
-                    y_from_camera = self.camera_data.get(camera_index)[1]
                     cosine = np.cos(self.camera_data.get(camera_index)[2])
                     sine = np.sin(self.camera_data.get(camera_index)[2])
                     x_1 = self.camera_data.get(camera_index)[0] - x
