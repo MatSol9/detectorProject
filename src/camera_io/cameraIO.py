@@ -55,11 +55,11 @@ class CameraDisplay(mtl.SinkParent):
                     y_from_camera = self.camera_data.get(detected_frame.camera_index)[1]
                     cosine = np.cos(self.camera_data.get(detected_frame.camera_index)[2])
                     sine = np.sin(self.camera_data.get(detected_frame.camera_index)[2])
+                    x_detected = self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[0]
+                    y_detected = self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[1]
                     self.detected_objects_centers.get(detected_frame.camera_index)[object_index] = \
-                        int(self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[0] + \
-                        x_from_camera*cosine - y_from_camera*sine), \
-                        int(self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[1] + \
-                        x_from_camera*sine + y_from_camera*cosine)
+                        int(x_from_camera + x_detected * cosine - y_detected * sine), \
+                        int(y_from_camera + x_detected * sine + y_detected * cosine)
         frames_to_display = deepcopy(self.first_frames)
         for object_index in self.indexes:
             i = 0
@@ -75,18 +75,19 @@ class CameraDisplay(mtl.SinkParent):
                     y += y_p
                     rot_p = self.detected_objects_rots.get(camera_index).get(object_index)
                     rot += rot_p
-                    x_from_camera = self.camera_data.get(camera_index)[0]
-                    y_from_camera = self.camera_data.get(camera_index)[1]
+                    x_1 = self.camera_data.get(camera_index)[0] - x_p
+                    y_1 = self.camera_data.get(camera_index)[1] - y_p
                     cosine = np.cos(self.camera_data.get(camera_index)[2])
                     sine = np.sin(self.camera_data.get(camera_index)[2])
                     frames_to_display[camera_index] = cv2.circle(frames_to_display[camera_index], (
-                        int(x_p - x_from_camera*cosine + y_from_camera*sine), int(y_p - x_from_camera*sine - y_from_camera*cosine)), 5,
+                        int(x_1*cosine + y_1*sine),
+                        int(y_1*cosine - x_1*sine)), 5,
                                                                  (255, 0, 0), -1)
                     frames_to_display[camera_index] = cv2.putText(frames_to_display[camera_index],
                                                                   "object: {}: rot: {}".format(object_index,
                                                                                                str(rot_p)), (
-                                                                      int(x_p - x_from_camera*cosine + y_from_camera*sine),
-                                                                      int(y_p - x_from_camera*sine - y_from_camera*cosine + 15)),
+                                                                      int(x_1*cosine + y_1*sine),
+                                                                      int(y_1*cosine - x_1*sine + 15)),
                                                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
             if i != 0:
                 x = x // i
@@ -97,14 +98,16 @@ class CameraDisplay(mtl.SinkParent):
                     y_from_camera = self.camera_data.get(camera_index)[1]
                     cosine = np.cos(self.camera_data.get(camera_index)[2])
                     sine = np.sin(self.camera_data.get(camera_index)[2])
+                    x_1 = self.camera_data.get(camera_index)[0] - x
+                    y_1 = self.camera_data.get(camera_index)[1] - y
                     frames_to_display[camera_index] = cv2.putText(frames_to_display[camera_index],
                                                                   "object: {}: rot: {}".format(object_index, str(rot)),
-                                                                  (int(x - x_from_camera*cosine + y_from_camera*sine),
-                                                                   int(y - x_from_camera*sine - y_from_camera*cosine)),
+                                                                  (
+                                                                      int(x_1*cosine + y_1*sine),
+                                                                      int(y_1*cosine - x_1*sine)),
                                                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
                     frames_to_display[camera_index] = cv2.circle(frames_to_display[camera_index], (
-                        int(x - x_from_camera*cosine + y_from_camera*sine), int(y - x_from_camera*sine - y_from_camera*cosine)), 5,
-                                                                 (0, 0, 255), -1)
+                        int(x_1*cosine + y_1*sine), int(y_1*cosine - x_1*sine)), 5, (0, 0, 255), -1)
                 cv2.putText(frame_window, "object: {}: rot: {}".format(object_index, str(rot)), (x, y),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
                 cv2.circle(frame_window, (x, y), 5, (0, 0, 255), -1)
