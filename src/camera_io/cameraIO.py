@@ -109,6 +109,8 @@ class CameraDisplay(mtl.SinkParent):
                         int(x_1*cosine + y_1*sine), int(y_1*cosine - x_1*sine)), 5, (0, 0, 255), -1)
                 cv2.putText(frame_window, "object: {}: rot: {}".format(object_index, str(rot)), (x, y),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                cv2.putText(frame_window, "x: {}, y: {}".format(x, y), (x, y - 15),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
                 cv2.circle(frame_window, (x, y), 5, (0, 0, 255), -1)
         for camera_index in self.cameras:
             cv2.imshow("Camera: {}".format(camera_index), frames_to_display[camera_index])
