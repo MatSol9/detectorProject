@@ -27,9 +27,12 @@ class CameraReader(mtl.GetParent):
             return None
         return FrameObject(deepcopy(frame), self.index)
 
+    def get_resolution(self) -> Tuple[int, int]:
+        return self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
 
 class CameraDisplay(mtl.SinkParent):
-    def __init__(self, window_name: str, camera_data: Dict[int, Tuple[int, int]]):
+    def __init__(self, window_name: str, camera_data: Dict[int, Tuple[int, int, float, Tuple[int, int]]]):
         super(CameraDisplay, self).__init__()
         self.window_name = window_name
         config = Config()
@@ -109,11 +112,16 @@ class CameraDisplay(mtl.SinkParent):
                         int(x_1*cosine + y_1*sine), int(y_1*cosine - x_1*sine)), 5, (0, 0, 255), -1)
                 cv2.putText(frame_window, "object: {}: rot: {}".format(object_index, str(rot)), (x, y),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-                cv2.putText(frame_window, "x: {}, y: {}".format(x, y), (x, y - 15),
+                cv2.putText(frame_window, "x: {}, y: {}".format(x, y), (x + 83, y + 18),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
                 cv2.circle(frame_window, (x, y), 5, (0, 0, 255), -1)
         for camera_index in self.cameras:
             cv2.imshow("Camera: {}".format(camera_index), frames_to_display[camera_index])
+            res_x, res_y = self.camera_data.get(camera_index)[3]
+            x_cam = self.camera_data.get(camera_index)[0]
+            y_cam = self.camera_data.get(camera_index)[1]
+            cv2.rectangle(frame_window, (int(x_cam), int(y_cam)), (int(x_cam + res_x), int(y_cam + res_y)), (255, 0, 0), 3)
+            cv2.putText(frame_window, "Camera {}".format(camera_index), (x_cam, y_cam + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         cv2.imshow(self.window_name, frame_window)
         cv2.waitKey(1)
 
@@ -151,8 +159,10 @@ class Camera:
         self.status = "INACTIVE"
         data_from_input = [Queue()]
         self.settings: Settings = Settings()
+        camera_reader = CameraReader(self.index)
+        self.resolution = camera_reader.get_resolution()
         self.data_getter = mtl.PeriodicDataGetter(data_from_input,
-                                                  CameraReader(self.index),
+                                                  camera_reader,
                                                   self.fps)
         self.data_worker_detect = mtl.DataWorker(data_from_input,
                                                  data_output,
@@ -198,7 +208,7 @@ class AllCameras:
         self.data_output.append(output_object)
         self.all_cameras[index] = Camera(index, fps, x, y, [output_object])
         self.indexes.append(index)
-        self.camera_data[index] = x, y, angle
+        self.camera_data[index] = x, y, angle, self.all_cameras.get(index).resolution
 
     def start_camera(self, index: int):
         self.all_cameras[index].start()
