@@ -5,9 +5,15 @@ objects:
     tag_id: 0
   1:
     tag_id: 1
+  2:
+    tag_id: 2
+  3:
+    tag_id: 3
+  4:
+    tag_id: 4
 
 max_search_index: 10
 
 field_of_detection:
-  x: 800
-  y: 800
+  x: 900
+  y: 900

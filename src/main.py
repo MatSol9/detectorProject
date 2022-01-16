@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 
 import cv2
+import threading
 
 import camera_io.cameraIO as cameraIO
 import multi_thread_data_processing.multiThreadDataProcessing as mtl
@@ -54,8 +55,33 @@ def create_camera_rest():
     try:
         cameras.add_camera(index, fps, x, y, angle)
     except:
-        return "index {} does not exist".format(index), 400
+        return "index {} does not exist".format(index), 500
     return "camera {} created".format(index), 200
+
+
+@app.route('/cameras/update', methods=['PUT'])
+def update_camera_rest():
+    try:
+        index: int = int(request.args.get("index"))
+        fps: float = float(request.args.get("fps"))
+        x: int = int(request.args.get("x"))
+        y: int = int(request.args.get("y"))
+        angle: float = float(request.args.get("angle"))
+    except:
+        return "wrong arguments", 400
+    if index not in cameras.indexes:
+        return "camera {} does not exist".format(index), 500
+    lock = threading.Lock()
+    lock.acquire(blocking=True, timeout=-1)
+    camera = cameras.all_cameras.get(index)
+    camera.fps = fps
+    camera.data_getter.period = 1/fps
+    camera.x = x
+    camera.y = y
+    camera.angle = angle
+    cameras.camera_data[index] = x, y, angle, camera.resolution, camera.cals_display_points()
+    lock.release()
+    return "camera {} updated".format(index), 200
 
 
 @app.route('/cameras/free', methods=['GET'])

@@ -28,11 +28,11 @@ class CameraReader(mtl.GetParent):
         return FrameObject(deepcopy(frame), self.index)
 
     def get_resolution(self) -> Tuple[int, int]:
-        return self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        return int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 
 class CameraDisplay(mtl.SinkParent):
-    def __init__(self, window_name: str, camera_data: Dict[int, Tuple[int, int, float, Tuple[int, int]]]):
+    def __init__(self, window_name: str, camera_data: Dict[int, Tuple[int, int, float, Tuple[int, int], Tuple]]):
         super(CameraDisplay, self).__init__()
         self.window_name = window_name
         config = Config()
@@ -117,10 +117,9 @@ class CameraDisplay(mtl.SinkParent):
                 cv2.circle(frame_window, (x, y), 5, (0, 0, 255), -1)
         for camera_index in self.cameras:
             cv2.imshow("Camera: {}".format(camera_index), frames_to_display[camera_index])
-            res_x, res_y = self.camera_data.get(camera_index)[3]
             x_cam = self.camera_data.get(camera_index)[0]
             y_cam = self.camera_data.get(camera_index)[1]
-            cv2.rectangle(frame_window, (int(x_cam), int(y_cam)), (int(x_cam + res_x), int(y_cam + res_y)), (255, 0, 0), 3)
+            cv2.polylines(frame_window, [self.camera_data.get(camera_index)[4]], True, (255, 0, 0), 1)
             cv2.putText(frame_window, "Camera {}".format(camera_index), (x_cam, y_cam + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         cv2.imshow(self.window_name, frame_window)
         cv2.waitKey(1)
@@ -151,11 +150,13 @@ class Camera:
                  fps: float,
                  x: int,
                  y: int,
+                 angle: float,
                  data_output: List[Queue]):
         self.index = index
         self.fps = fps
         self.x = x
         self.y = y
+        self.angle = angle
         self.status = "INACTIVE"
         data_from_input = [Queue()]
         self.settings: Settings = Settings()
@@ -171,6 +172,17 @@ class Camera:
                                                      imageTransforms
                                                          .DetectObjectsTransform(
                                                          self.settings)))
+
+    def cals_display_points(self):
+        p1 = [int(self.x), int(self.y)]
+        res_x, res_y = self.resolution
+        sin = np.sin(self.angle)
+        cos = np.cos(self.angle)
+        p2 = [int(self.x + (res_x * cos)), int(self.y + res_x * sin)]
+        p3 = [int(self.x + (res_x * cos) - (res_y * sin)), int(self.y + (res_x * sin) + (res_y * cos))]
+        p4 = [int(self.x - (res_y * sin)), int(self.y + res_y * cos)]
+        pts = np.array([p1, p2, p3, p4], np.int32)
+        return pts.reshape((-1, 1, 2))
 
     def start(self):
         self.data_getter.start()
@@ -189,7 +201,8 @@ class Camera:
         return {
             "fps": self.fps,
             "status": self.status,
-            "handle point": (self.x, self.y)
+            "handle point": (self.x, self.y),
+            "camera angle": self.angle
         }
 
     def __str__(self) -> str:
@@ -206,9 +219,9 @@ class AllCameras:
     def add_camera(self, index: int, fps: float, x: int, y: int, angle: float):
         output_object: Queue = Queue()
         self.data_output.append(output_object)
-        self.all_cameras[index] = Camera(index, fps, x, y, [output_object])
+        self.all_cameras[index] = Camera(index, fps, x, y, angle, [output_object])
         self.indexes.append(index)
-        self.camera_data[index] = x, y, angle, self.all_cameras.get(index).resolution
+        self.camera_data[index] = x, y, angle, self.all_cameras.get(index).resolution, self.all_cameras.get(index).cals_display_points()
 
     def start_camera(self, index: int):
         self.all_cameras[index].start()
