@@ -32,8 +32,8 @@ class DetectObjectsTransform(mtl.OperationParent):
                 (ptA, ptB, ptC, ptD) = detected.corners
                 pt_length = np.sqrt(((ptA[0] - ptD[0])*(ptA[0] - ptD[0])) + ((ptA[1] - ptD[1])*(ptA[1] - ptD[1])))
                 val = np.arccos(float((ptA[1] - ptD[1]) / pt_length))
-                if ptA[0] - ptD[0] < 0:
-                    val += np.pi
+                # if ptA[0] - ptD[0] < 0:
+                #     val += np.pi
                 rots[self.settings.tags_index.get(detected.tag_id)] = val
         return FrameObjectWithDetectedObjects(frame.get_frame(), frame.camera_index, centers, rots)
 
