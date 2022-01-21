@@ -78,7 +78,13 @@ class CameraDisplay(mtl.SinkParent):
                     y += y_p
                     rot_p = self.detected_objects_rots.get(camera_index).get(object_index) \
                             + self.camera_data.get(camera_index)[2]
-                    rot += rot_p
+                    rot_p = rot_p - np.floor(rot_p / (2*np.pi))*2*np.pi
+                    if rot == 0:
+                        rot = rot_p
+                    elif np.abs(rot - rot_p) > np.pi:
+                        rot = (rot + np.pi + rot_p)/2
+                    else:
+                        rot = (rot + rot_p) / 2
                     x_1 = x_p - self.camera_data.get(camera_index)[0]
                     y_1 = y_p - self.camera_data.get(camera_index)[1]
                     cosine = np.cos(self.camera_data.get(camera_index)[2])
@@ -96,7 +102,7 @@ class CameraDisplay(mtl.SinkParent):
             if i != 0:
                 x = x // i
                 y = y // i
-                rot = rot / i
+                # rot = rot / i
                 for camera_index in self.cameras:
                     cosine = np.cos(self.camera_data.get(camera_index)[2])
                     sine = np.sin(self.camera_data.get(camera_index)[2])
