@@ -11,8 +11,14 @@ app = Flask(__name__)
 cameras = cameraIO.AllCameras()
 
 
+# def main():
+#     data_display = mtl.DataSink(cameras.data_output, cameraIO.CameraDisplay("Video", cameras.camera_data))
+#     data_display.start()
+#     app.run()
+
+
 def main():
-    data_display = mtl.DataSink(cameras.data_output, cameraIO.CameraDisplay("Video", cameras.camera_data))
+    data_display = mtl.DataSink(cameras.data_output, cameraIO.CameraDisplayPersonDetections())
     data_display.start()
     app.run()
 

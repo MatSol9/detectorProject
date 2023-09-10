@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Tuple
 
 import apriltag
 import cv2
+import threading
 import numpy as np
 
 import src.image_transforms.imageTransforms as imageTransforms
@@ -11,6 +12,9 @@ import src.multi_thread_data_processing.multiThreadDataProcessing as mtl
 from src.data_model.dataModel import Config
 from src.data_model.dataModel import FrameObject
 from src.data_model.dataModel import FrameObjectWithDetectedObjects
+from src.data_model.dataModel import FrameObjectWithBoundingBoxes
+from src.neural_net_detector.neuralNetDetector import MockedDetector
+from src.notification_channel.notificationSender import send_notification
 
 
 class CameraReader(mtl.GetParent):
@@ -31,6 +35,29 @@ class CameraReader(mtl.GetParent):
         return int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 
+class CameraDisplayPersonDetections(mtl.SinkParent):
+    def __init__(self):
+        super(CameraDisplayPersonDetections, self).__init__()
+        self.__camera_detections = {}
+
+    def sink_data(self, input_object: List[FrameObjectWithBoundingBoxes]):
+        for frame_object in input_object:
+            frame_to_draw = deepcopy(frame_object.get_frame())
+            camera_index = frame_object.get_index()
+            bboxes = frame_object.get_bounding_boxes()
+            frame_x, frame_y = frame_to_draw.shape[0], frame_to_draw.shape[1]
+            for y_s, x_s, h, w in bboxes:
+                frame_to_draw[x_s:min(frame_x, x_s + w), y_s, :] = [255, 0, 0]
+                frame_to_draw[x_s:min(frame_x, x_s + w), min(frame_y, y_s + h), :] = [255, 0, 0]
+                frame_to_draw[min(frame_x, x_s + w), y_s:min(frame_y, y_s + h), :] = [255, 0, 0]
+                frame_to_draw[x_s, y_s:min(frame_x, y_s + h), :] = [255, 0, 0]
+            if len(bboxes) != self.__camera_detections.get(camera_index, None) and len(bboxes) != 0:
+                threading.Thread(target=send_notification, args=(camera_index, frame_to_draw)).start()
+            self.__camera_detections[camera_index] = len(bboxes)
+            cv2.imshow("Camera: {}".format(camera_index), frame_to_draw)
+            cv2.waitKey(1)
+
+
 class CameraDisplay(mtl.SinkParent):
     def __init__(self, window_name: str, camera_data: Dict[int, Tuple[int, int, float, Tuple[int, int], Tuple]]):
         super(CameraDisplay, self).__init__()
@@ -47,20 +74,20 @@ class CameraDisplay(mtl.SinkParent):
     def sink_data(self, input_object: List[FrameObjectWithDetectedObjects]):
         frame_window = np.zeros((*self.window_size, 3))
         for detected_frame in input_object:
-            if detected_frame.camera_index not in self.cameras:
-                self.cameras.add(detected_frame.camera_index)
-            self.first_frames[detected_frame.camera_index] = detected_frame.get_frame()
-            self.detected_objects_centers[detected_frame.camera_index] = detected_frame.centers
-            self.detected_objects_rots[detected_frame.camera_index] = detected_frame.rots
+            if detected_frame.get_index() not in self.cameras:
+                self.cameras.add(detected_frame.get_index())
+            self.first_frames[detected_frame.get_index()] = detected_frame.get_frame()
+            self.detected_objects_centers[detected_frame.get_index()] = detected_frame.centers
+            self.detected_objects_rots[detected_frame.get_index()] = detected_frame.rots
             for object_index in self.indexes:
-                if object_index in self.detected_objects_centers[detected_frame.camera_index]:
-                    x_from_camera = self.camera_data.get(detected_frame.camera_index)[0]
-                    y_from_camera = self.camera_data.get(detected_frame.camera_index)[1]
-                    cosine = np.cos(self.camera_data.get(detected_frame.camera_index)[2])
-                    sine = np.sin(self.camera_data.get(detected_frame.camera_index)[2])
-                    x_detected = self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[0]
-                    y_detected = self.detected_objects_centers.get(detected_frame.camera_index).get(object_index)[1]
-                    self.detected_objects_centers.get(detected_frame.camera_index)[object_index] = \
+                if object_index in self.detected_objects_centers[detected_frame.get_index()]:
+                    x_from_camera = self.camera_data.get(detected_frame.get_index())[0]
+                    y_from_camera = self.camera_data.get(detected_frame.get_index())[1]
+                    cosine = np.cos(self.camera_data.get(detected_frame.get_index())[2])
+                    sine = np.sin(self.camera_data.get(detected_frame.get_index())[2])
+                    x_detected = self.detected_objects_centers.get(detected_frame.get_index()).get(object_index)[0]
+                    y_detected = self.detected_objects_centers.get(detected_frame.get_index()).get(object_index)[1]
+                    self.detected_objects_centers.get(detected_frame.get_index())[object_index] = \
                         int(x_from_camera + x_detected * cosine - y_detected * sine), \
                         int(y_from_camera + x_detected * sine + y_detected * cosine)
         frames_to_display = deepcopy(self.first_frames)
@@ -175,9 +202,7 @@ class Camera:
                                                  data_output,
                                                  mtl.OperationChain()
                                                  .add_operation(
-                                                     imageTransforms
-                                                         .DetectObjectsTransform(
-                                                         self.settings)))
+                                                     imageTransforms.DetectObjectWithModelTransform(MockedDetector())))
 
     def cals_display_points(self):
         p1 = [int(self.x), int(self.y)]

@@ -11,6 +11,8 @@ import src.multi_thread_data_processing.multiThreadDataProcessing as mtl
 from src.camera_io.cameraIO import Settings
 from src.data_model.dataModel import FrameObject
 from src.data_model.dataModel import FrameObjectWithDetectedObjects
+from src.data_model.dataModel import FrameObjectWithBoundingBoxes
+from src.neural_net_detector.neuralNetDetector import Detector
 
 
 class DetectObjectsTransform(mtl.OperationParent):
@@ -35,7 +37,18 @@ class DetectObjectsTransform(mtl.OperationParent):
                 if ptA[0] - ptD[0] > 0:
                     val = 2 * np.pi - val
                 rots[self.settings.tags_index.get(detected.tag_id)] = val
-        return FrameObjectWithDetectedObjects(frame.get_frame(), frame.camera_index, centers, rots)
+        return FrameObjectWithDetectedObjects(frame.get_frame(), frame.get_index(), centers, rots)
+
+
+class DetectObjectWithModelTransform(mtl.OperationParent):
+    def __init__(self, detector: Detector):
+        super().__init__()
+        self.__detector = detector
+
+    def run(self, input_object: List[FrameObject]) -> FrameObject:
+        frame = input_object[0]
+        bboxes = self.__detector.get_bboxes(frame.get_frame())
+        return FrameObjectWithBoundingBoxes(frame.get_frame(), frame.get_index(), bboxes)
 
 
 class ShowCentersOfMass(mtl.OperationParent):
@@ -46,6 +59,6 @@ class ShowCentersOfMass(mtl.OperationParent):
         frame = input_object.get_frame()
         for c_x, c_y in input_object.centers.values():
             frame = cv2.circle(input_object.get_frame(), (c_x, c_y), 5, (0, 0, 255), -1)
-        return FrameObjectWithDetectedObjects(frame, input_object.camera_index, input_object.centers,
+        return FrameObjectWithDetectedObjects(frame, input_object.get_index(), input_object.centers,
                                               input_object.rots)
 

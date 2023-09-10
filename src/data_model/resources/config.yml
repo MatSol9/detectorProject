@@ -1,0 +1,19 @@
+tag_family: "tag36h11"
+
+objects:
+  0:
+    tag_id: 0
+  1:
+    tag_id: 1
+  2:
+    tag_id: 2
+  3:
+    tag_id: 3
+  4:
+    tag_id: 4
+
+max_search_index: 10
+
+field_of_detection:
+  x: 900
+  y: 900

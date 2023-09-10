@@ -19,7 +19,7 @@ def singleton(cls):
 @singleton
 class Config:
     def __init__(self):
-        with open("src/resources/config.yml", "r") as ymlfile:
+        with open("resources/config.yml", "r") as ymlfile:
             self.cfg: dict = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
     def get_camera_indexes(self) -> List[int]:
@@ -40,15 +40,15 @@ class Config:
 
 class FrameObject:
     def __init__(self, frame: np.ndarray, camera_index: int):
-        self.frame: np.ndarray = frame
+        self.__frame: np.ndarray = frame
         self.timestamp: float = datetime.now().timestamp()
-        self.camera_index: int = camera_index
+        self.__camera_index: int = camera_index
 
     def get_frame(self) -> np.ndarray:
-        return self.frame
+        return self.__frame
 
     def get_index(self) -> int:
-        return self.camera_index
+        return self.__camera_index
 
 
 class FrameObjectWithDetectedObjects(FrameObject):
@@ -63,3 +63,12 @@ class FrameObjectWithDetectedObjects(FrameObject):
 
     def get_rotation(self, index):
         return self.rots.get(index)
+
+
+class FrameObjectWithBoundingBoxes(FrameObject):
+    def __init__(self, frame: np.ndarray, camera_index: int, bboxes: List[Tuple[int, int, int, int]]):
+        super(FrameObjectWithBoundingBoxes, self).__init__(frame, camera_index)
+        self.__bboxes = bboxes
+
+    def get_bounding_boxes(self):
+        return self.__bboxes
