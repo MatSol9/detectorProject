@@ -2,19 +2,21 @@ from copy import deepcopy
 from queue import Queue
 from typing import Optional, List, Dict, Tuple
 
-import apriltag
+#import apriltag
 import cv2
 import threading
+import torch
 import numpy as np
+from camera_io.settings import Settings
 
-import src.image_transforms.imageTransforms as imageTransforms
-import src.multi_thread_data_processing.multiThreadDataProcessing as mtl
-from src.data_model.dataModel import Config
-from src.data_model.dataModel import FrameObject
-from src.data_model.dataModel import FrameObjectWithDetectedObjects
-from src.data_model.dataModel import FrameObjectWithBoundingBoxes
-from src.neural_net_detector.neuralNetDetector import MockedDetector
-from src.notification_channel.notificationSender import send_notification
+from image_transforms.imageTransforms import DetectObjectWithModelTransform
+import multi_thread_data_processing.multiThreadDataProcessing as mtl
+from data_model.dataModel import Config
+from data_model.dataModel import FrameObject
+from data_model.dataModel import FrameObjectWithDetectedObjects
+from data_model.dataModel import FrameObjectWithBoundingBoxes
+from neural_net_detector.neuralNetDetector import BaseYoloDetector
+from notification_channel.notificationSender import send_notification
 
 
 class CameraReader(mtl.GetParent):
@@ -39,6 +41,7 @@ class CameraDisplayPersonDetections(mtl.SinkParent):
     def __init__(self):
         super(CameraDisplayPersonDetections, self).__init__()
         self.__camera_detections = {}
+        # self.__output_map = output_map
 
     def sink_data(self, input_object: List[FrameObjectWithBoundingBoxes]):
         for frame_object in input_object:
@@ -46,16 +49,27 @@ class CameraDisplayPersonDetections(mtl.SinkParent):
             camera_index = frame_object.get_index()
             bboxes = frame_object.get_bounding_boxes()
             frame_x, frame_y = frame_to_draw.shape[0], frame_to_draw.shape[1]
-            for y_s, x_s, h, w in bboxes:
-                frame_to_draw[x_s:min(frame_x, x_s + w), y_s, :] = [255, 0, 0]
-                frame_to_draw[x_s:min(frame_x, x_s + w), min(frame_y, y_s + h), :] = [255, 0, 0]
-                frame_to_draw[min(frame_x, x_s + w), y_s:min(frame_y, y_s + h), :] = [255, 0, 0]
-                frame_to_draw[x_s, y_s:min(frame_x, y_s + h), :] = [255, 0, 0]
+            for x_s, y_s, w, h in bboxes:
+                frame_to_draw[x_s:min(frame_x - 1, x_s + w), y_s, :] = [255, 0, 0]
+                frame_to_draw[x_s:min(frame_x - 1, x_s + w), min(frame_y - 1, y_s + h), :] = [255, 0, 0]
+                frame_to_draw[min(frame_x - 1, x_s + w), y_s:min(frame_y - 1, y_s + h), :] = [255, 0, 0]
+                frame_to_draw[x_s, y_s:min(frame_x - 1, y_s + h), :] = [255, 0, 0]
             if len(bboxes) != self.__camera_detections.get(camera_index, None) and len(bboxes) != 0:
                 threading.Thread(target=send_notification, args=(camera_index, frame_to_draw)).start()
             self.__camera_detections[camera_index] = len(bboxes)
-            cv2.imshow("Camera: {}".format(camera_index), frame_to_draw)
-            cv2.waitKey(1)
+            # self.__output_map[camera_index] = frame_to_draw.tolist()
+            # threading.Thread(target=send_request, args=(camera_index, frame_to_draw,)).start()
+            # cv2.destroyAllWindows()
+            # cv2.imshow("Camera: {}".format(camera_index), frame_to_draw)
+            # cv2.waitKey(1)
+
+
+#def send_request(camera_index, frame):
+#    data = {
+#        "index": camera_index,
+#        "frame": frame.tolist()
+#    }
+#    requests.post("http://192.168.1.252:6969/receive", json=data)
 
 
 class CameraDisplay(mtl.SinkParent):
@@ -154,6 +168,7 @@ class CameraDisplay(mtl.SinkParent):
             y_cam = self.camera_data.get(camera_index)[1]
             cv2.polylines(frame_window, [self.camera_data.get(camera_index)[4]], True, (255, 0, 0), 1)
             cv2.putText(frame_window, "Camera {}".format(camera_index), (x_cam, y_cam + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        cv2.destroyAllWindows()
         cv2.imshow(self.window_name, frame_window)
         cv2.waitKey(1)
 
@@ -164,19 +179,6 @@ class CameraDisplay(mtl.SinkParent):
         cv2.destroyWindow(self.window_name)
 
 
-class Settings:
-    def __init__(self):
-        self.config = Config()
-        temp_objects = self.config.get_objects()
-        self.indexes: List[int] = list(temp_objects.keys())
-        self.options = apriltag.DetectorOptions(families=self.config.get_tag_family())
-        self.tags_index = {}
-        self.tags = []
-        for index in self.indexes:
-            self.tags_index[temp_objects.get(index).get("tag_id")] = index
-            self.tags.append(temp_objects.get(index).get("tag_id"))
-
-
 class Camera:
     def __init__(self,
                  index: int,
@@ -184,7 +186,8 @@ class Camera:
                  x: int,
                  y: int,
                  angle: float,
-                 data_output: List[Queue]):
+                 data_output: List[Queue],
+                 model):
         self.index = index
         self.fps = fps
         self.x = x
@@ -202,7 +205,7 @@ class Camera:
                                                  data_output,
                                                  mtl.OperationChain()
                                                  .add_operation(
-                                                     imageTransforms.DetectObjectWithModelTransform(MockedDetector())))
+                                                     DetectObjectWithModelTransform(BaseYoloDetector(model))))
 
     def cals_display_points(self):
         p1 = [int(self.x), int(self.y)]
@@ -246,11 +249,15 @@ class AllCameras:
         self.indexes: List[int] = []
         self.data_output: List[Queue] = []
         self.camera_data = {}
+        device = torch.device("cuda")
+        print("CUDA IS AVAILABLE {}".format(torch.cuda.is_available()))
+        self.__yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+#        self.__yolo_model.to(device)
 
     def add_camera(self, index: int, fps: float, x: int, y: int, angle: float):
         output_object: Queue = Queue()
         self.data_output.append(output_object)
-        self.all_cameras[index] = Camera(index, fps, x, y, angle, [output_object])
+        self.all_cameras[index] = Camera(index, fps, x, y, angle, [output_object], self.__yolo_model)
         self.indexes.append(index)
         self.camera_data[index] = x, y, angle, self.all_cameras.get(index).resolution, self.all_cameras.get(index).cals_display_points()
 

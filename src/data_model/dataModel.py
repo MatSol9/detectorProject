@@ -19,7 +19,7 @@ def singleton(cls):
 @singleton
 class Config:
     def __init__(self):
-        with open("resources/config.yml", "r") as ymlfile:
+        with open("/tmp/build/src/resources/config.yml", "r") as ymlfile:
             self.cfg: dict = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
     def get_camera_indexes(self) -> List[int]:

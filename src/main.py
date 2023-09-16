@@ -3,12 +3,13 @@ from flask import Flask, jsonify, request
 import cv2
 import threading
 
-import camera_io.cameraIO as cameraIO
 import multi_thread_data_processing.multiThreadDataProcessing as mtl
 from data_model.dataModel import Config
+from camera_io.cameraIO import CameraDisplayPersonDetections
+from camera_io.cameraIO import AllCameras
 
 app = Flask(__name__)
-cameras = cameraIO.AllCameras()
+cameras = AllCameras()
 
 
 # def main():
@@ -17,15 +18,23 @@ cameras = cameraIO.AllCameras()
 #     app.run()
 
 
+# output_map = {}
+
+
 def main():
-    data_display = mtl.DataSink(cameras.data_output, cameraIO.CameraDisplayPersonDetections())
+    data_display = mtl.DataSink(cameras.data_output, CameraDisplayPersonDetections())
     data_display.start()
-    app.run()
+    app.run(host='0.0.0.0', port=2137)
 
 
 def get_cameras():
     result = cameras.cameras_to_dict()
     return jsonify(result)
+#
+#
+# @app.route('/cameras/output', methods=['GET'])
+# def get_output_rest():
+#     return jsonify(output_map)
 
 
 @app.route('/cameras/get', methods=['GET'])
@@ -100,7 +109,7 @@ def get_available_indexes_rest():
             if cap.isOpened():
                 result.append(index)
                 cap.release()
-    return "available indexes: {}".format(result), 200
+    return jsonify({"available": result}), 200
 
 
 @app.route('/cameras/resolutions', methods=['GET'])

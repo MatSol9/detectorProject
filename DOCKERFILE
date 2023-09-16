@@ -1,0 +1,17 @@
+FROM python:3.8
+# FROM file:a48a5dc1b9dbfc632f6cf86fe27b770b63f07a115c98c4465dc184e303a4efa1
+# FROM pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel
+WORKDIR /home/mat_komp/PycharmProjects/detectorProject/
+RUN mkdir /tmp/build/
+# ADD file:a48a5dc1b9dbfc632f6cf86fe27b770b63f07a115c98c4465dc184e303a4efa1 in /
+# Add context to /tmp/build/
+RUN ls -a
+COPY . /tmp/build
+COPY fff /tmp/build
+# COPY src /tmp/build
+# RUN cp /home/mat_komp/PycharmProjects/detectorProject/src /tmp/build
+# this last command outputs the list of files added to the build context:
+RUN pwd
+# RUN pip install torch
+# RUN pip install opencv-python
+# RUN python3 src/main.py

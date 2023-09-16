@@ -1,18 +1,16 @@
-from __future__ import annotations
-
 from typing import List, Dict
 from typing import Tuple
 
-import apriltag
+#import apriltag
 import cv2
 import numpy as np
 
-import src.multi_thread_data_processing.multiThreadDataProcessing as mtl
-from src.camera_io.cameraIO import Settings
-from src.data_model.dataModel import FrameObject
-from src.data_model.dataModel import FrameObjectWithDetectedObjects
-from src.data_model.dataModel import FrameObjectWithBoundingBoxes
-from src.neural_net_detector.neuralNetDetector import Detector
+import multi_thread_data_processing.multiThreadDataProcessing as mtl
+from camera_io.settings import Settings
+from data_model.dataModel import FrameObject
+from data_model.dataModel import FrameObjectWithDetectedObjects
+from data_model.dataModel import FrameObjectWithBoundingBoxes
+from neural_net_detector.neuralNetDetector import Detector
 
 
 class DetectObjectsTransform(mtl.OperationParent):
@@ -25,7 +23,7 @@ class DetectObjectsTransform(mtl.OperationParent):
         frame_gr = cv2.cvtColor(frame.get_frame(), cv2.COLOR_BGR2GRAY)
         centers: Dict[int, Tuple[int, int]] = {}
         rots: Dict = {}
-        detector = apriltag.Detector(self.settings.options)
+        detector = None
         results = detector.detect(frame_gr)
         for detected in results:
             if detected.tag_id in self.settings.tags:
